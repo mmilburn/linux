@@ -199,7 +199,7 @@ struct mwl8k_priv {
 	struct ieee80211_channel channels_24[14];
 	struct ieee80211_rate rates_24[13];
 	struct ieee80211_supported_band band_50;
-	struct ieee80211_channel channels_50[4];
+	struct ieee80211_channel channels_50[24];
 	struct ieee80211_rate rates_50[8];
 	u32 ap_macids_supported;
 	u32 sta_macids_supported;
@@ -289,7 +289,7 @@ struct mwl8k_priv {
 	unsigned fw_state;
 	char *fw_pref;
 	char *fw_alt;
-	bool is_8764;
+	bool is_8X64;
 	struct completion firmware_loading_complete;
 
 	/* bitmap of running BSSes */
@@ -383,6 +383,26 @@ static const struct ieee80211_channel mwl8k_channels_50[] = {
 	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5200, .hw_value = 40, },
 	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5220, .hw_value = 44, },
 	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5240, .hw_value = 48, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5260, .hw_value = 52, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5280, .hw_value = 56, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5300, .hw_value = 60, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5320, .hw_value = 64, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5500, .hw_value = 100, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5520, .hw_value = 104, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5540, .hw_value = 108, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5560, .hw_value = 112, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5580, .hw_value = 116, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5600, .hw_value = 120, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5620, .hw_value = 124, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5640, .hw_value = 128, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5660, .hw_value = 132, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5680, .hw_value = 136, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5700, .hw_value = 140, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5745, .hw_value = 149, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5765, .hw_value = 153, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5785, .hw_value = 157, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5805, .hw_value = 161, },
+	{ .band = IEEE80211_BAND_5GHZ, .center_freq = 5825, .hw_value = 165, },
 };
 
 static const struct ieee80211_rate mwl8k_rates_50[] = {
@@ -611,7 +631,7 @@ mwl8k_send_fw_load_cmd(struct mwl8k_priv *priv, void *data, int length)
 	loops = 1000;
 	do {
 		u32 int_code;
-		if (priv->is_8764) {
+		if (priv->is_8X64) {
 			int_code = ioread32(regs +
 					    MWL8K_HIU_H2A_INTERRUPT_STATUS);
 			if (int_code == 0)
@@ -740,7 +760,7 @@ static int mwl8k_load_firmware(struct ieee80211_hw *hw)
 	int rc;
 	int loops;
 
-	if (!memcmp(fw->data, "\x01\x00\x00\x00", 4) && !priv->is_8764) {
+	if (!memcmp(fw->data, "\x01\x00\x00\x00", 4) && !priv->is_8X64) {
 		const struct firmware *helper = priv->fw_helper;
 
 		if (helper == NULL) {
@@ -759,7 +779,7 @@ static int mwl8k_load_firmware(struct ieee80211_hw *hw)
 
 		rc = mwl8k_feed_fw_image(priv, fw->data, fw->size);
 	} else {
-		if (priv->is_8764)
+		if (priv->is_8X64)
 			rc = mwl8k_feed_fw_image(priv, fw->data, fw->size);
 		else
 			rc = mwl8k_load_fw_image(priv, fw->data, fw->size);
@@ -5629,6 +5649,7 @@ enum {
 	MWL8687,
 	MWL8366,
 	MWL8764,
+	MWL8864,
 };
 
 #define MWL8K_8366_AP_FW_API 3
@@ -5664,6 +5685,12 @@ static struct mwl8k_device_info mwl8k_info_tbl[] = {
 		.fw_api_ap	= MWL8K_8764_AP_FW_API,
 		.ap_rxd_ops	= &rxd_ap_ops,
 	},
+	[MWL8864] = {
+		.part_name	= "88w8864",
+		.fw_image_ap    = MWL8K_8764_AP_FW(MWL8K_8764_AP_FW_API),
+		.fw_api_ap      = MWL8K_8764_AP_FW_API,
+		.ap_rxd_ops     = &rxd_ap_ops,
+	},
 };
 
 MODULE_FIRMWARE("mwl8k/helper_8363.fw");
@@ -5685,6 +5712,7 @@ static const struct pci_device_id mwl8k_pci_id_table[] = {
 	{ PCI_VDEVICE(MARVELL, 0x2a42), .driver_data = MWL8366, },
 	{ PCI_VDEVICE(MARVELL, 0x2a43), .driver_data = MWL8366, },
 	{ PCI_VDEVICE(MARVELL, 0x2b36), .driver_data = MWL8764, },
+	{ PCI_VDEVICE(MARVELL, 0x2a55), .driver_data = MWL8864, },
 	{ },
 };
 MODULE_DEVICE_TABLE(pci, mwl8k_pci_id_table);
@@ -6204,8 +6232,8 @@ static int mwl8k_probe(struct pci_dev *pdev,
 	priv->pdev = pdev;
 	priv->device_info = &mwl8k_info_tbl[id->driver_data];
 
-	if (id->driver_data == MWL8764)
-		priv->is_8764 = true;
+	if ((id->driver_data == MWL8764) || (id->driver_data == MWL8864))
+		priv->is_8X64 = true;
 
 	priv->sram = pci_iomap(pdev, 0, 0x10000);
 	if (priv->sram == NULL) {
